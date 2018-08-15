@@ -61,6 +61,8 @@ def main(_):
   config = tf.estimator.RunConfig(train_distribute=distribution,
                                   # eval_distribute=distribution,
                                   session_config=tf.ConfigProto(
+                                    # auto-use different device when operation not supported on assigned device
+                                    # see https://github.com/tensorflow/tensorflow/issues/2285#issuecomment-217949259
                                     allow_soft_placement=True,
                                     log_device_placement=True))
 
