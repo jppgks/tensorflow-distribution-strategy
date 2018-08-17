@@ -11,6 +11,6 @@ cd $VSC_DATA/tf-distribution-strategy
 conda activate py27-tf
 echo Start job
 date
-python summaries_example.py
+python simple_estimator/simple_estimator_example.py
 echo End job
 
