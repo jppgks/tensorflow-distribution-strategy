@@ -55,31 +55,16 @@ def build_model_fn_optimizer():
 
     assert mode == tf.estimator.ModeKeys.TRAIN
 
-    # def get_init_fn(scaffold_self, session):
-    #   def _init_fn(session):
-    #     with tf.device('/cpu:0'):
-    #       session.run(tf.initialize_all_variables())
-    #
-    #   return _init_fn
-
-    # scaffold = tf.train.Scaffold(init_fn=get_init_fn)
-
     global_step = tf.train.get_global_step()
     train_op = optimizer.minimize(loss_fn(), global_step=global_step)
     return tf.estimator.EstimatorSpec(mode,
                                       loss=loss_fn(),
-                                      train_op=train_op,
-                                      # scaffold=scaffold
-                                      )
+                                      train_op=train_op)
 
   return model_fn
 
 
 def main(_):
-  # tf_config = os.environ.get('CLUSTER_SPEC')
-  # tf_config_json = json.loads(tf_config)
-  # cluster = tf_config_json.get('cluster')
-  # cluster = tf.train.ClusterSpec(tf_config_json)
   strategy = tf.contrib.distribute.MirroredStrategy(
     num_gpus=4)
   strategy.configure(
@@ -94,11 +79,7 @@ def main(_):
                                   session_config=tf.ConfigProto(
                                     # auto-use different device when operation not supported on assigned device
                                     # see https://github.com/tensorflow/tensorflow/issues/2285#issuecomment-217949259
-                                    #allow_soft_placement=True,
-                                    #gpu_options=tf.GPUOptions(
-                                    #  per_process_gpu_memory_fraction=0.3
-                                    #  # force_gpu_compatible=True
-                                    #),
+                                    allow_soft_placement=True,
                                     log_device_placement=True))
 
   def input_fn():

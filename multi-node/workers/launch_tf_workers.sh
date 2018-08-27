@@ -18,10 +18,10 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/apps/leuven/skylake/2018a/software/CUDA
 # Change to appropriate directory
 cd $VSC_DATA/tf-distribution-strategy/multi-node/workers
 
-# Store ClusterSpec in TF_CONFIG
-source export_TF_CONFIG.sh
+# Store ClusterSpec in CLUSTER_SPEC 
+source export_CLUSTER_SPEC.sh
 
-# Launch workers ($hosts should be available after sourcing export_TF_CONFIG.sh)
+# Launch workers ($hosts should be available after sourcing export_CLUSTER_SPEC.sh)
 mpirun -np 1 --map-by node python task_0.py
 mpirun -np 1 --map-by node python task_1.py
 mpirun -np 1 --map-by node python simple_estimator_example.py
