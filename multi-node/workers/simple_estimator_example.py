@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import sys
 import json
 
 import tensorflow as tf
@@ -54,28 +55,50 @@ def build_model_fn_optimizer():
 
     assert mode == tf.estimator.ModeKeys.TRAIN
 
+    # def get_init_fn(scaffold_self, session):
+    #   def _init_fn(session):
+    #     with tf.device('/cpu:0'):
+    #       session.run(tf.initialize_all_variables())
+    #
+    #   return _init_fn
+
+    # scaffold = tf.train.Scaffold(init_fn=get_init_fn)
+
     global_step = tf.train.get_global_step()
     train_op = optimizer.minimize(loss_fn(), global_step=global_step)
-    return tf.estimator.EstimatorSpec(mode, loss=loss_fn(), train_op=train_op)
+    return tf.estimator.EstimatorSpec(mode,
+                                      loss=loss_fn(),
+                                      train_op=train_op,
+                                      # scaffold=scaffold
+                                      )
 
   return model_fn
 
 
 def main(_):
-  tf_config = os.environ.get('TF_CONFIG')
-  tf_config_json = json.loads(tf_config)
-  cluster = tf_config_json.get('cluster')
-  cluster = tf.train.ClusterSpec(cluster)
-  distribution = tf.contrib.distribute.MirroredStrategy(
-    cluster_spec=cluster,
-    num_gpus=2)
+  # tf_config = os.environ.get('CLUSTER_SPEC')
+  # tf_config_json = json.loads(tf_config)
+  # cluster = tf_config_json.get('cluster')
+  # cluster = tf.train.ClusterSpec(tf_config_json)
+  strategy = tf.contrib.distribute.MirroredStrategy(
+    num_gpus=4)
+  strategy.configure(
+    cluster_spec={
+      "worker": [
+        "/job:worker/task:0", "/job:worker/task:1"
+      ]
+    }) 
 
-  config = tf.estimator.RunConfig(train_distribute=distribution,
-                                  # eval_distribute=distribution,
+  config = tf.estimator.RunConfig(train_distribute=strategy,
+                                  eval_distribute=strategy,
                                   session_config=tf.ConfigProto(
                                     # auto-use different device when operation not supported on assigned device
                                     # see https://github.com/tensorflow/tensorflow/issues/2285#issuecomment-217949259
-                                    allow_soft_placement=True,
+                                    #allow_soft_placement=True,
+                                    #gpu_options=tf.GPUOptions(
+                                    #  per_process_gpu_memory_fraction=0.3
+                                    #  # force_gpu_compatible=True
+                                    #),
                                     log_device_placement=True))
 
   def input_fn():
@@ -84,11 +107,13 @@ def main(_):
     return tf.data.Dataset.zip((features, labels))
 
   estimator = tf.estimator.Estimator(
-    model_fn=build_model_fn_optimizer(), config=config)
+    model_fn=build_model_fn_optimizer(),
+    config=config,
+    model_dir="/scratch/leuven/319/vsc31962")
   estimator.train(input_fn=input_fn, steps=10)
 
   eval_result = estimator.evaluate(input_fn=input_fn, steps=10)
-  print("Eval result: {}".format(eval_result))
+  sys.stdout.write("Eval result: {}".format(eval_result))
 
   def predict_input_fn():
     predict_features = tf.data.Dataset.from_tensors([[1.]]).repeat(10)
@@ -96,7 +121,7 @@ def main(_):
 
   prediction_iterable = estimator.predict(input_fn=predict_input_fn)
   predictions = [prediction_iterable.next() for _ in range(10)]
-  print("Prediction results: {}".format(predictions))
+  sys.stdout.write("Prediction results: {}".format(predictions))
 
 
 if __name__ == "__main__":

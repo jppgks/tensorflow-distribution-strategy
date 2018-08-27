@@ -10,7 +10,12 @@ for hostname in $hosts; do
 done
 worker_string=${worker_string::-2}
 worker_string+="]"
-#export TF_CONFIG='{"cluster": {"worker": ["nodeA:2222", "nodeB:2222"]}}'
-export TF_CONFIG='{"cluster": {"worker": '"$worker_string"'}}'
-echo 'TF_CONFIG: '"$TF_CONFIG"
+chief=($hosts)
+chief=${chief[0]}
+# Chief and task attributes may be redundant when using MirroredStrategy
+# only added this because TF complained that we were using TF_CONFIG without specifying those attributes
+export CLUSTER_SPEC='{"worker": '"$worker_string"'}'
+echo 'CLUSTER_SPEC: '"$CLUSTER_SPEC"
+#export TF_CONFIG='{"cluster": {"chief": ["'"$chief"':2222"], "worker": '"$worker_string"'}, "task": {"type": "chief", "index": 0}}'
+#echo 'TF_CONFIG: '"$TF_CONFIG"
 
