@@ -20,13 +20,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import sys
 import json
-
+import os
 import tensorflow as tf
-from tensorflow.core.protobuf import config_pb2
-from tensorflow.python.framework import test_util
 
 
 def build_model_fn_optimizer():
@@ -65,44 +61,38 @@ def build_model_fn_optimizer():
 
 
 def main(_):
-  strategy = tf.contrib.distribute.MirroredStrategy(
-    num_gpus=4)
-  strategy.configure(
-    cluster_spec={
-      "worker": [
-        "/job:worker/task:0", "/job:worker/task:1"
-      ]
-    }) 
-
-  config = tf.estimator.RunConfig(train_distribute=strategy,
-                                  eval_distribute=strategy,
-                                  session_config=tf.ConfigProto(
-                                    # auto-use different device when operation not supported on assigned device
-                                    # see https://github.com/tensorflow/tensorflow/issues/2285#issuecomment-217949259
-                                    allow_soft_placement=True,
-                                    log_device_placement=True))
-
   def input_fn():
     features = tf.data.Dataset.from_tensors([[1.]]).repeat(10)
     labels = tf.data.Dataset.from_tensors(1.).repeat(10)
     return tf.data.Dataset.zip((features, labels))
 
+  train_spec = tf.estimator.TrainSpec(input_fn=input_fn)
+  eval_spec = tf.estimator.EvalSpec(input_fn=input_fn)
+
+  distribution = tf.contrib.distribute.CollectiveAllReduceStrategy(
+    num_gpus_per_worker=4)
+
+  tf_cluster = os.environ.get('CLUSTER_SPEC')
+  tf_cluster_json = json.loads(tf_cluster)
+
+  config = tf.estimator.RunConfig(
+    experimental_distribute=tf.contrib.distribute.DistributeConfig(
+      train_distribute=distribution,
+      # eval_distribute=distribution,
+      remote_cluster=tf_cluster_json),
+    session_config=tf.ConfigProto(
+      # auto-use different device when operation not supported on assigned device
+      # see https://github.com/tensorflow/tensorflow/issues/2285#issuecomment-217949259
+      allow_soft_placement=True,
+      log_device_placement=True)
+  )
+
   estimator = tf.estimator.Estimator(
     model_fn=build_model_fn_optimizer(),
     config=config,
     model_dir="/scratch/leuven/319/vsc31962")
-  estimator.train(input_fn=input_fn, steps=10)
 
-  eval_result = estimator.evaluate(input_fn=input_fn, steps=10)
-  sys.stdout.write("Eval result: {}".format(eval_result))
-
-  def predict_input_fn():
-    predict_features = tf.data.Dataset.from_tensors([[1.]]).repeat(10)
-    return predict_features
-
-  prediction_iterable = estimator.predict(input_fn=predict_input_fn)
-  predictions = [prediction_iterable.next() for _ in range(10)]
-  sys.stdout.write("Prediction results: {}".format(predictions))
+  tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 
 if __name__ == "__main__":

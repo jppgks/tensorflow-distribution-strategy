@@ -13,4 +13,3 @@ worker_string+="]"
 
 export CLUSTER_SPEC='{"worker": '"$worker_string"'}'
 echo 'CLUSTER_SPEC: '"$CLUSTER_SPEC"
-
