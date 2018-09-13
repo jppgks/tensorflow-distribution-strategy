@@ -1,8 +1,12 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
 
 import json
 import os
-import tensorflow as tf
+from .simple_estimator_example import model_main
 
 tf_cluster = os.environ.get('CLUSTER_SPEC')
 tf_cluster_json = json.loads(tf_cluster)
@@ -12,4 +16,4 @@ os.environ["TF_CONFIG"] = json.dumps({
 })
 sys.stdout.write(os.environ["TF_CONFIG"])
 
-tf.contrib.distribute.run_standard_tensorflow_server().join()
+model_main()

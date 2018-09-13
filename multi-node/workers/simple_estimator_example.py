@@ -60,7 +60,7 @@ def build_model_fn_optimizer():
   return model_fn
 
 
-def main(_):
+def model_main():
   def input_fn():
     features = tf.data.Dataset.from_tensors([[1.]]).repeat(10)
     labels = tf.data.Dataset.from_tensors(1.).repeat(10)
@@ -72,14 +72,8 @@ def main(_):
   distribution = tf.contrib.distribute.CollectiveAllReduceStrategy(
     num_gpus_per_worker=4)
 
-  tf_cluster = os.environ.get('CLUSTER_SPEC')
-  tf_cluster_json = json.loads(tf_cluster)
-
   config = tf.estimator.RunConfig(
-    experimental_distribute=tf.contrib.distribute.DistributeConfig(
-      train_distribute=distribution,
-      # eval_distribute=distribution,
-      remote_cluster=tf_cluster_json),
+    train_distribute=distribution,
     session_config=tf.ConfigProto(
       # auto-use different device when operation not supported on assigned device
       # see https://github.com/tensorflow/tensorflow/issues/2285#issuecomment-217949259
@@ -93,7 +87,3 @@ def main(_):
     model_dir="/scratch/leuven/319/vsc31962")
 
   tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
-
-
-if __name__ == "__main__":
-  tf.app.run()

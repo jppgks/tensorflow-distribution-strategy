@@ -24,4 +24,3 @@ source export_CLUSTER_SPEC.sh
 # Launch workers ($hosts should be available after sourcing export_CLUSTER_SPEC.sh)
 mpirun -np 1 --map-by node python worker_0.py
 mpirun -np 1 --map-by node python worker_1.py
-mpirun -np 1 --map-by node python simple_estimator_example.py
