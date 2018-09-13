@@ -84,7 +84,7 @@ def main(_):
 
   def input_fn():
     features = tf.data.Dataset.from_tensors([[1.]]).repeat(10)
-    labels = tf.data.Dataset.from_tensors([1.]).repeat(10)
+    labels = tf.data.Dataset.from_tensors(1.).repeat(10)
     return tf.data.Dataset.zip((features, labels))
 
   estimator = tf.estimator.Estimator(
